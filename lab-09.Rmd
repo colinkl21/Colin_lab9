@@ -1,0 +1,92 @@
+---
+title: "Lab 09 - Grading the professor, Pt. 1"
+author: "Colin Li"
+date: "03/28/2023"
+output: github_document
+---
+
+### Load packages and data
+
+```{r load-packages, message=FALSE}
+library(tidyverse) 
+library(tidymodels)
+library(openintro)
+library(ggplot2)
+```
+
+### Part 1
+
+```{r}
+
+
+ggplot(evals, aes(x = score)) + geom_histogram(bins = 30)  + theme(panel.background = element_rect(fill = "white", colour = "grey50")) 
+
+View(evals)
+
+ggplot(evals, aes(y = score, x = bty_avg)) + geom_point() + geom_smooth(method = lm) + theme(panel.background = element_rect(fill = "white", colour = "grey50")) 
+
+ggplot(evals, aes(y = score, x = bty_avg)) + geom_jitter() + geom_smooth(method = lm) + theme(panel.background = element_rect(fill = "white", colour = "grey50")) 
+
+```
+negatively skewed 
+
+it looks like geom_point sort of overplott (i.e., one point means multiple data points), whereas geom_jitter shows more data points. 
+
+### Part 2
+
+```{r}
+
+m_bty <- lm(score~bty_avg, data = evals)
+summary(m_bty)
+
+ggplot(evals, aes(y = score, x = bty_avg)) + geom_jitter() + geom_smooth(method = lm, color = "orange", se = FALSE) + theme(panel.background = element_rect(fill = "white", colour = "grey50")) 
+
+```
+The slope means, a 1 unit increase in average beauty rating is associated with .067 point increase in professors' course eval score.
+intercepts means when the professor's average beauty rating is 0, the predicted course eval score is 3.88. I guess it does not fully make sense, because it looks like the minimum score one can get is 1. 
+R2 means 3.5% of variance in the score can be explained by average beauty rating, which is not a large effect size. 
+
+
+### Part 3
+
+```{r}
+
+m_gen <- lm(score~gender, data = evals)
+summary(m_gen)
+
+t.test(evals$score~evals$gender)
+
+#interpretation: on average, male professors are rated .142 higher than female professors. Intercept = female professors' rating 
+
+#equation male: y = 4.09282 + 0.14151
+#equation female: y = 4.09282
+
+ggplot(evals, aes(y = score, x = bty_avg)) + geom_jitter() + geom_smooth(method = lm, color = "orange", se = FALSE) + facet_wrap(vars(gender)) + theme(panel.background = element_rect(fill = "white", colour = "grey50")) + theme(strip.background = element_rect(fill="white"))
+
+m_rank <- lm(score~rank, data = evals)
+summary(m_rank)
+
+#intercept: average rating score of teaching professors = 4.28. Slope tenure track compares tenure tracking professors' rating to teaching professors rating, which is .13 lower than teaching professors'. Slope tenured compares tenured professors to teaching professors, which is .145 lower than teaching professors'.  
+
+evals$rank <- relevel(evals$rank, ref = "tenure track")
+m_rank_rlevel <- lm(score ~ rank, data = evals)
+summary(m_rank_rlevel)
+
+#intercept: tenure track professors rating = 4.15, slope teaching shows teaching professors avg rating score is .13 higher than tenure track professors', slope tenured shows tenured professors avg rating score is .02 lower than tenure track professors', neither of the differences are significant. R2 shows 1.2% of variance in score can be explained by rank, it's a very small effect size and marginally significant. 
+
+evals <- evals %>%
+  mutate(tenure_eligible = case_when(
+    rank %in% c("tenure track", "tenured") ~ "yes",
+    rank == "teaching"           ~ "no"
+
+  ))
+
+
+
+m_tenure_eligible <- lm(score ~ tenure_eligible, data = evals)
+summary(m_tenure_eligible)
+
+#intercept: teaching faculty's avg rating = 4.28, slope tenure_eligible yes means tenure eligible faculty members avg rating is .14 lower than teaching faculty's. R2 shows 1.2% of variance in score can be explained by rank, it's a very small effect size, but it's significant.  
+
+```
+
